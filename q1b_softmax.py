@@ -28,6 +28,8 @@ def softmax(x):
     """
     orig_shape = x.shape
 
+    #########
+
     if len(x.shape) > 1:
         # Matrix
         ### YOUR CODE HERE
