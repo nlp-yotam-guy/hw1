@@ -14,8 +14,8 @@ def normalizeRows(x):
     unit length.
     """
 
-    ### YOUR CODE HERE
-    ### END YOUR CODE
+    norm = np.linalg.norm(x,axis=1,keepdims=True)
+    x = x/norm
 
     return x
 
@@ -55,10 +55,20 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     free to reference the code you previously wrote for this
     assignment!
     """
+    # outputVectors >> U
+    # predicted     >> v_c
+    # target        >> o
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    u_o = outputVectors[target]
+    U = outputVectors
+
+    cost = -np.log(softmax(np.dot(u_o,predicted)))
+    n,d = outputVectors.shape
+
+    t = softmax(np.dot(predicted,U.T))
+    gradPred = (np.dot(t.reshape(1,n),U) - u_o).flatten()
+
+    grad = np.dot(t.reshape(n,1),predicted.reshape(1,d))
 
     return cost, gradPred, grad
 
@@ -94,9 +104,21 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices = [target]
     indices.extend(getNegativeSamples(target, dataset, K))
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    # outputVectors >> U
+    # predicted     >> v_c
+    # target        >> o
+
+    v_c = predicted
+    u_o = outputVectors[target]
+    U = outputVectors
+
+    t1 = (sigmoid(np.dot(u_o,v_c)) - 1) * u_o
+    t2 = np.sum(np.dot((1 - sigmoid(np.dot(U,u_o))),U),axis=1,keepdims=True)
+    gradPred = t1 + t2
+
+    grad = np.dot(1-(sigmoid(np.dot(u_o,predicted)),v_c))
+
+    cost = -np.log(sigmoid(np.dot(u_o,v_c))) - np.sum(np.log(sigmoid(np.dot(-U,v_c))),axis=1,keepdims=True)
 
     return cost, gradPred, grad
 
@@ -129,9 +151,14 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradIn = np.zeros(inputVectors.shape)
     gradOut = np.zeros(outputVectors.shape)
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    current_idx = tokens[currentWord]
+
+    for word in contextWords:
+        c_cost,c_grad,c_gradPred = word2vecCostAndGradient(inputVectors[current_idx,:],tokens[word],outputVectors,dataset)
+        cost += c_cost
+        gradIn[current_idx] += c_gradPred[current_idx]
+        gradOut[current_idx] += c_grad.flatten()
+
 
     return cost, gradIn, gradOut
 
