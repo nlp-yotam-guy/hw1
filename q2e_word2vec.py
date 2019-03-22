@@ -59,16 +59,22 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     # predicted     >> v_c
     # target        >> o
 
-    u_o = outputVectors[target]
+    v_c = predicted
+    #u_o = outputVectors[target]
     U = outputVectors
 
-    cost = -np.log(softmax(np.dot(u_o,predicted)))
-    n,d = outputVectors.shape
+    dot_prod = np.dot(v_c,U.T)
+    softmax_out = softmax(dot_prod)
+    exp_out = np.exp(dot_prod)
 
-    t = softmax(np.dot(predicted,U.T))
-    gradPred = (np.dot(t.reshape(1,n),U) - u_o).flatten()
+    # cost = np.dot(-U[target],v_c) + np.log(np.sum(exp_out))
+    cost = -np.log(softmax_out[target])
 
-    grad = np.dot(t.reshape(n,1),predicted.reshape(1,d))
+    softmax_out[target] -= 1
+    gradPred = np.dot(softmax_out, U)
+    softmax_out = softmax_out.reshape(softmax_out.shape[0],1)
+
+    grad = np.dot(softmax_out,v_c.reshape(1,len(v_c)))
 
     return cost, gradPred, grad
 
@@ -104,21 +110,29 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices = [target]
     indices.extend(getNegativeSamples(target, dataset, K))
 
+    grad = np.zeros(outputVectors.shape)
+    gradPred = np.zeros(predicted.shape)
+
     # outputVectors >> U
     # predicted     >> v_c
     # target        >> o
 
     v_c = predicted
-    u_o = outputVectors[target]
     U = outputVectors
 
-    t1 = (sigmoid(np.dot(u_o,v_c)) - 1) * u_o
-    t2 = np.sum(np.dot((1 - sigmoid(np.dot(U,u_o))),U),axis=1,keepdims=True)
-    gradPred = t1 + t2
+    dot_prod = np.dot(U,v_c)
+    sigmoid_out = sigmoid(dot_prod)
+    sigmoid_out_neg = sigmoid(-dot_prod)
 
-    grad = np.dot(1-(sigmoid(np.dot(u_o,predicted)),v_c))
+    grad[target] += v_c * (sigmoid_out[target]-1)
+    gradPred += U[target] * (sigmoid_out[target]-1)
 
-    cost = -np.log(sigmoid(np.dot(u_o,v_c))) - np.sum(np.log(sigmoid(np.dot(-U,v_c))),axis=1,keepdims=True)
+    cost = -np.log(sigmoid_out[target])
+
+    for i in indices[1:]:
+        cost -= sigmoid_out_neg[i]
+        grad[i] += v_c * sigmoid_out_neg[i]
+        gradPred += U[i] * sigmoid_out_neg[i]
 
     return cost, gradPred, grad
 
@@ -154,10 +168,10 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     current_idx = tokens[currentWord]
 
     for word in contextWords:
-        c_cost,c_grad,c_gradPred = word2vecCostAndGradient(inputVectors[current_idx,:],tokens[word],outputVectors,dataset)
+        c_cost,c_grad,c_gradPred = word2vecCostAndGradient(inputVectors[current_idx],tokens[word],outputVectors,dataset)
         cost += c_cost
-        gradIn[current_idx] += c_gradPred[current_idx]
-        gradOut[current_idx] += c_grad.flatten()
+        gradIn[tokens[currentWord]] += c_grad
+        gradOut += c_gradPred
 
 
     return cost, gradIn, gradOut
