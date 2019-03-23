@@ -17,8 +17,12 @@ def knn(vector, matrix, k=10):
     nearest_idx -- A numpy vector consists of the rows indices of the k-nearest neighbors in the matrix
     """
 
-    nearest_idx = []
-    sim = np.apply_along_axis(cosine_sim,1,matrix,vector)
+    sim = np.zeros(matrix.shape[0])
+    for i in range(matrix.shape[0]):
+        if np.array_equal(vector,matrix[i]):
+            continue
+        else:
+            sim[i] = cosine_sim(vector,matrix[i])
     nearest_idx = list(np.flip(np.argsort(sim)))[:k]
     return nearest_idx
 
