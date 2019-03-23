@@ -1,6 +1,8 @@
 import numpy as np
 from q2e_word2vec import normalizeRows
 
+def cosine_sim(v1,v2):
+    return np.dot(v1,v2) / (np.linalg.norm(v1)*np.linalg.norm(v2))
 
 def knn(vector, matrix, k=10):
     """
@@ -16,9 +18,8 @@ def knn(vector, matrix, k=10):
     """
 
     nearest_idx = []
-
-    ### YOUR CODE
-    ### END YOUR CODE
+    sim = np.apply_along_axis(cosine_sim,1,matrix,vector)
+    nearest_idx = list(np.flip(np.argsort(sim)))[:k]
     return nearest_idx
 
 def test_knn():
